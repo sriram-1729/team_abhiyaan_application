@@ -6,84 +6,86 @@
 
 #define PI 3.1415926
 
-turtlesim::Pose abhi;
-turtlesim::Pose turt1;
-geometry_msgs::Twist vel;
+turtlesim::Pose abhiyaan_position;
+turtlesim::Pose turtle_position;
+geometry_msgs::Twist velocity;
 
-bool velocity()
+namespace turtle_exercise
 {
-  float distance = sqrt(pow(abhi.x - turt1.x, 2) + pow(abhi.y - turt1.y, 2));
-  float velocity = 2;
+
+  bool determineVelocity()
+  {
+    float distance = sqrt(pow(abhiyaan_position.x - turtle_position.x, 2) + pow(abhiyaan_position.y - turtle_position.y, 2));
+    float speed = 2;
   
-  while(distance > 2)
-    {
-      float angle = asin((abhi.y - turt1.y) / sqrt(pow((abhi.x - turt1.x), 2) + pow((abhi.y - turt1.y), 2)));
-      if ((abhi.x - turt1.x < 0) && (abhi.y - turt1.y > 0))
-	angle = PI - angle;
-      else if((abhi.x - turt1.x < 0) && (abhi.y - turt1.y < 0))
-	angle = PI - angle;
-      else if((abhi.x - turt1.x > 0) && (abhi.y - turt1.y < 0)) 
-	angle = 2 * PI + angle;
-      while((turt1.theta >= angle + 0.1) || (turt1.theta <= angle - 0.1))
-	{
-	  vel.angular.z = 1;
-	  return true;
-	}
+    while(distance > 2)
+      {
+	float angle = asin((abhiyaan_position.y - turtle_position.y) / sqrt(pow((abhiyaan_position.x - turtle_position.x), 2) + pow((abhiyaan_position.y - turtle_position.y), 2)));
+	if ((abhiyaan_position.x - turtle_position.x < 0) && (abhiyaan_position.y - turtle_position.y > 0))
+	  angle = PI - angle;
+	else if((abhiyaan_position.x - turtle_position.x < 0) && (abhiyaan_position.y - turtle_position.y < 0))
+	  angle = PI - angle;
+	else if((abhiyaan_position.x - turtle_position.x > 0) && (abhiyaan_position.y - turtle_position.y < 0)) 
+	  angle = 2 * PI + angle;
+	while((turtle_position.theta >= angle + 0.1) || (turtle_position.theta <= angle - 0.1))
+	  {
+	    velocity.angular.z = 1;
+	    return true;
+	  }
       
-      vel.linear.z = vel.angular.x = vel.angular.y = vel.angular.z = 0;
+	velocity.linear.z = velocity.angular.x = velocity.angular.y = velocity.angular.z = 0;
 
-      vel.linear.x = velocity * cos(turt1.theta);
-      vel.linear.y = velocity * sin(turt1.theta);
+	velocity.linear.x = speed * cos(turtle_position.theta);
+	velocity.linear.y = speed * sin(turtle_position.theta);
       
-      return true;
-    }
+	return true;
+      }
 
-  vel.linear.x = vel.linear.y = vel.angular.z = 0;
+    velocity.linear.x = velocity.linear.y = velocity.angular.z = 0;
   
-  return true;
-}
+    return true;
+  }
 
-void subsabhiyaanPose(const turtlesim::Pose& d_abhi)
-{
-  abhi.x = d_abhi.x;
-  abhi.y = d_abhi.y;
-  abhi.theta = d_abhi.theta;
-  abhi.linear_velocity = d_abhi.linear_velocity;
-  abhi.angular_velocity = d_abhi.angular_velocity;
-}
+  void copyAbhiyaanPosition(const turtlesim::Pose& duplicate_abhiyaan_position)
+  {
+    abhiyaan_position.x = duplicate_abhiyaan_position.x;
+    abhiyaan_position.y = duplicate_abhiyaan_position.y;
+    abhiyaan_position.theta = duplicate_abhiyaan_position.theta;
+    abhiyaan_position.linear_velocity = duplicate_abhiyaan_position.linear_velocity;
+    abhiyaan_position.angular_velocity = duplicate_abhiyaan_position.angular_velocity;
+  }
 
-void substurtle1Pose(const turtlesim::Pose& d_turt1)
-{
-  turt1.x = d_turt1.x;
-  turt1.y = d_turt1.y;
-  turt1.theta = d_turt1.theta;
-  turt1.linear_velocity = d_turt1.linear_velocity;
-  turt1.angular_velocity = d_turt1.angular_velocity;
-}
+  void copyTurtlePosition(const turtlesim::Pose& duplicate_turtle_position)
+  {
+    turtle_position.x = duplicate_turtle_position.x;
+    turtle_position.y = duplicate_turtle_position.y;
+    turtle_position.theta = duplicate_turtle_position.theta;
+    turtle_position.linear_velocity = duplicate_turtle_position.linear_velocity;
+    turtle_position.angular_velocity = duplicate_turtle_position.angular_velocity;
+  }
+
+} // namespace turtle_exercise
 
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "turtle1_client");
-  ros::NodeHandle n;
+  ros::NodeHandle node_handle;
 
-  beginner_tutorials::Turtle1 srv;
+  ros::Subscriber subscriber1 = node_handle.subscribe("abhiyaan/pose", 100, turtle_exercise::copyAbhiyaanPosition);
 
-  ros::Subscriber sub1 = n.subscribe("abhiyaan/pose", 100, subsabhiyaanPose);
+  ros::Subscriber subscriber2 = node_handle.subscribe("turtle1/pose", 100, turtle_exercise::copyTurtlePosition);
 
-  ros::Subscriber sub2 = n.subscribe("turtle1/pose", 100, substurtle1Pose);
-
-  ros::Publisher pub = n.advertise<geometry_msgs::Twist>("turtle1/cmd_vel", 100);
+  ros::Publisher publisher1 = node_handle.advertise<geometry_msgs::Twist>("turtle1/cmd_vel", 100);
   ros::Rate loop_rate(10);
 
   while(ros::ok())
     {
-      velocity();
+      turtle_exercise::determineVelocity();
       
-      pub.publish(vel);
+      publisher1.publish(velocity);
 
       ros::spinOnce();
-      loop_rate.sleep();
-	  
+      loop_rate.sleep(); 
     }
   
   return 0;
